@@ -10,37 +10,39 @@ namespace CSharpEventDemo
     {
         static void Main(string[] args)
         {
-            // 使用一般Observer pattern
-            Console.WriteLine("Observer Pattern Demo");
-            var tempatureMonitor = new TempatureMonitorSubject();
-
+            // 使用Delegate完成Observer pattern
+            Console.WriteLine("Delegate Demo");
+            var tempatureMonitorDelegate = new TempatureMonitorUsingDelegate();
             var desktopApp = new DesktopApp();
             var mobileApp = new MobileApp();
+            tempatureMonitorDelegate.OnTempatureChanged += desktopApp.OnTempatureChanged;
+            tempatureMonitorDelegate.OnTempatureChanged += mobileApp.OnTempatureChanged;
 
-            tempatureMonitor.RegisterObserver(desktopApp);
-            tempatureMonitor.RegisterObserver(mobileApp);
+            Console.WriteLine("設定溫度，現在是30.5度");
+            tempatureMonitorDelegate.Tempature = 30.5;
 
-            Console.WriteLine("溫度變化了，現在是30.5度");
-            tempatureMonitor.Tempature = 30.5;
+            Console.WriteLine("設定溫度，現在依然是30.5度");
+            tempatureMonitorDelegate.Tempature = 30.5;
 
-            Console.WriteLine("溫度沒變化，現在依然是30.5度");
-            tempatureMonitor.Tempature = 30.5;
-
-            Console.WriteLine("溫度變化了，現在是28.6度");
-            tempatureMonitor.Tempature = 28.6;
+            Console.WriteLine("設定溫度，現在是28.6度");
+            tempatureMonitorDelegate.Tempature = 28.6;
 
             Console.WriteLine("mobileApp不再想觀察了");
-            tempatureMonitor.UnregisterObserver(mobileApp);
+            tempatureMonitorDelegate.OnTempatureChanged -= mobileApp.OnTempatureChanged;
 
-            Console.WriteLine("溫度變化了，現在是27.6度");
-            tempatureMonitor.Tempature = 27.6;
+            Console.WriteLine("設定溫度，現在是27.6度");
+            tempatureMonitorDelegate.Tempature = 27.6;
             Console.WriteLine();
             Console.ReadKey();
         }
     }
 
-    public class TempatureMonitorSubject : ITempatureMonitorSubject
+    public partial class TempatureMonitorUsingDelegate
     {
+        public delegate void TempatureChangedHandler(double tempature);
+
+        public TempatureChangedHandler OnTempatureChanged;
+
         private double tempature;
 
         public double Tempature
@@ -52,35 +54,20 @@ namespace CSharpEventDemo
                 if (oldTempature != value)
                 {
                     tempature = value;
-                    NotifyTempature();
+                    OnTempatureChanged.Invoke(value);
                 }
             }
         }
 
-        private List<ITempatureMonitorObserver> observers;
-
-        public TempatureMonitorSubject()
+        public TempatureMonitorUsingDelegate()
         {
-            observers = new List<ITempatureMonitorObserver>();
-            Console.WriteLine("開始偵測溫度");
+            // 使用delegate必須給定一個初始的委派方法
+            OnTempatureChanged = tempatureChanged;
         }
 
-        public void RegisterObserver(ITempatureMonitorObserver observer)
+        private void tempatureChanged(double tempature)
         {
-            observers.Add(observer);
-        }
-
-        public void UnregisterObserver(ITempatureMonitorObserver observer)
-        {
-            observers.Remove(observer);
-        }
-
-        public void NotifyTempature()
-        {
-            foreach (var observer in observers)
-            {
-                observer.OnTempatureChanged(tempature);
-            }
+            Console.WriteLine($"---委派方法內偵測到溫度發生變化了...{tempature}");
         }
     }
     // ITempatureMonitorSubject.cs
@@ -102,7 +89,7 @@ namespace CSharpEventDemo
     {
         public void OnTempatureChanged(double tempature)
         {
-            Console.WriteLine($"Desktop App被通知溫度變化了: {tempature}");
+            Console.WriteLine($"------Desktop App被通知溫度變化了: {tempature}");
         }
     }
 
@@ -111,7 +98,7 @@ namespace CSharpEventDemo
     {
         public void OnTempatureChanged(double tempature)
         {
-            Console.WriteLine($"Mobile App被通知溫度變化了: {tempature}");
+            Console.WriteLine($"------Mobile App被通知溫度變化了: {tempature}");
         }
     }
 }
